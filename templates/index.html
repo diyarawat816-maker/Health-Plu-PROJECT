@@ -1,0 +1,179 @@
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>HealthPlus</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+    <!-- Header -->
+    <header>
+        <h1>HealthPlus</h1>
+        <p>Understand your reports in simple language</p>
+    </header>
+
+
+    <!-- Main Container -->
+    <main class="container">
+
+        <h2>Upload Your Report</h2>
+
+        <p class="subtitle">
+            Upload your report and let AI explain it
+            in simple, easy-to-understand language.
+        </p>
+
+
+        <!-- Upload Form -->
+        <form id="reportForm"
+              action="/"
+              method="POST"
+              enctype="multipart/form-data">
+
+            <!-- File Upload -->
+            <label for="report">Choose Your Report</label>
+
+            <input
+                type="file"
+                id="report"
+                name="report"
+                accept=".pdf,.jpg,.jpeg,.png"
+                required
+            >
+
+
+            <!-- Language Selection -->
+            <label for="language">
+                Choose Explanation Language
+            </label>
+
+            <select name="language" id="language">
+
+                <option value="English">English</option>
+
+                <option value="Hindi">Hindi</option>
+
+                <option value="Both" selected>
+                    English + Hindi
+                </option>
+
+            </select>
+
+
+            <!-- Submit Button -->
+            <button type="submit" id="submitBtn">
+                Simplify My Report
+            </button>
+
+        </form>
+
+
+        <!-- Error Message -->
+        {% if error %}
+
+            <div class="error">
+
+                <h3>Something went wrong</h3>
+
+                <p>{{ error }}</p>
+
+            </div>
+
+        {% endif %}
+
+
+        <!-- Report Explanation -->
+        {% if explanation %}
+
+            <section class="result">
+
+                <h2>Your Report Explanation</h2>
+
+                <div class="explanation">
+                    {{ explanation }}
+                </div>
+
+            </section>
+
+        {% endif %}
+
+    </main>
+
+
+    <!-- Footer -->
+    <footer>
+
+        <p>HealthPlus | Powered by Gemini AI</p>
+
+        <p>
+            AI explanations are for informational purposes
+            and do not replace professional advice.
+        </p>
+
+    </footer>
+
+
+    <!-- Loading Screen -->
+    <div id="loadingScreen" class="loading-screen">
+
+        <div class="loading-card">
+
+            <div class="spinner"></div>
+
+            <h2>Analyzing Your Report...</h2>
+
+            <p>
+                Please wait while HealthPlus extracts
+                and simplifies your report.
+            </p>
+
+            <p class="loading-note">
+                This may take a few moments.
+            </p>
+
+        </div>
+
+    </div>
+
+
+    <!-- JavaScript for Loading Screen -->
+    <script>
+
+        const reportForm =
+            document.getElementById("reportForm");
+
+        const loadingScreen =
+            document.getElementById("loadingScreen");
+
+        const submitBtn =
+            document.getElementById("submitBtn");
+
+        reportForm.addEventListener("submit", function(event) {
+
+            // Check whether the required fields are valid
+            if (!reportForm.checkValidity()) {
+                return;
+            }
+
+            // Display loading screen
+            loadingScreen.style.display = "flex";
+
+            // Disable button to prevent repeated clicks
+            submitBtn.disabled = true;
+
+            submitBtn.textContent = "Processing...";
+
+        });
+
+    </script>
+
+</body>
+</html>
