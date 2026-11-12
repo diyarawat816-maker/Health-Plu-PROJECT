@@ -1,26 +1,36 @@
 
 import os
+from pathlib import Path
 
+from dotenv import load_dotenv
 from google import genai
 from google.genai import types
-from dotenv import load_dotenv
+
 
 # Load environment variables
-load_dotenv()
+BASE_DIR = Path(__file__).resolve().parent
+load_dotenv(BASE_DIR / ".env")
 
 # Get Gemini API key
 API_KEY = os.getenv("GEMINI_API_KEY")
 
 if not API_KEY:
     raise ValueError(
-        "GEMINI_API_KEY not found. Check your .env file."
+        "GEMINI_API_KEY not found. Check your environment settings."
     )
 
 # Connect to Gemini
-client = genai.Client(api_key=API_KEY)
+# One SDK attempt prevents long automatic retry delays.
+client = genai.Client(
+    api_key=API_KEY,
+    http_options=types.HttpOptions(
+        timeout=90000,
+        retry_options=types.HttpRetryOptions(attempts=1)
+    )
+)
 
-# Select AI model
-MODEL = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
+# Select Gemini model
+MODEL = "gemini-3.5-flash-lite"
 
 
 def explain_report(report_text, language="English"):
@@ -59,6 +69,7 @@ IMPORTANT RULES:
 9. For financial reports, do not give personal
    investment advice.
 10. Mention when professional advice is needed.
+11. Protect personal information in the report.
 
 OUTPUT LANGUAGE: {language}
 
@@ -79,20 +90,48 @@ REPORT TEXT:
 {report_text[:40000]}
 """
 
-    response = client.models.generate_content(
-        model=MODEL,
-        contents=prompt,
-        config=types.GenerateContentConfig(
-            system_instruction=(
-                "You are a careful and helpful report "
-                "simplification assistant. Explain facts "
-                "accurately without inventing information."
-            ),
-            temperature=0.2
-        )
+    config = types.GenerateContentConfig(
+        system_instruction=(
+            "You are a careful and helpful report "
+            "simplification assistant. Explain facts "
+            "accurately without inventing information."
+        ),
+        temperature=0.2
     )
 
-    if not response.text:
-        raise RuntimeError("Gemini returned an empty response.")
+    try:
+        print("Sending request to Gemini...")
 
-    return response.text
+        response = client.models.generate_content(
+            model=MODEL,
+            contents=prompt,
+            config=config
+        )
+
+        if not response.text:
+            raise RuntimeError("Gemini returned an empty response.")
+
+        print("Gemini explanation received successfully.")
+        return response.text
+
+    except Exception as error:
+        error_code = getattr(error, "code", None)
+        error_message = str(error).lower()
+
+        # Handle daily free-tier quota exhaustion
+        if (
+            error_code == 429
+            and (
+                "requests per day limit exceeded" in error_message
+                or "generaterequestsperdayperprojectpermodel-freetier"
+                in error_message
+            )
+        ):
+            raise RuntimeError(
+                "Gemini daily free-tier quota exhausted. "
+                "Please wait for the quota to reset."
+            ) from error
+
+        raise RuntimeError(
+            f"Gemini could not process the report: {error}"
+        ) from error
